@@ -1,0 +1,62 @@
+# Regression Models: Course Project
+
+## Executive Summary
+
+## Analysis
+
+### Loading useful packages for the analysis
+```{r}
+require(stats); require(graphics)
+
+```
+### Loading and preprocessing the data
+```{r}
+data(mtcars)
+
+pairs(mtcars[,-c(7,8)], panel=panel.smooth, main= "Car data")
+
+mtcars$am[mtcars$am =="0"] <- "automatic"
+mtcars$am[mtcars$am =="1"] <- "manual"
+
+
+mtcars$am <- as.factor(mtcars$am)
+boxplot(mtcars$mpg~ mtcars$am, col=c(2,3))
+
+```
+### Is an automatic or manual transmission better for MPG: Hypothesis Test
+
+For a basic answer to this question we perform a hypothesis test. The Null hypothesis ($H_0$) is that automatic and manual transmission does not make a difference to MPG (both means come from the same distribution)
+
+The alternative hypothesis ($H_1$) is that manual is better for MPG than automatic. We perform a non-paired t-test
+
+```{r}
+ya <- mtcars$mpg[mtcars$am == "automatic"]
+ym <- mtcars$mpg[mtcars$am == "manual"]
+
+compare <- t.test(x=ym, y=ya, paired=FALSE)
+
+```
+
+It appears that according to the results of the two sided `r compare$method`, manual is better than automatic for MPG. We report a p-value of `r compare$p.value` and confidence intervals: (`r compare$conf.int[1]`, `r compare$conf.int[2]`).
+
+### Quantifying how different is the MPG between automatic and manual transmissions: Fitting linear models
+
+Fitting a simple linear model involving only the type of transmission as a predictor confirms the results of the hypothesis test:
+
+```{r}
+model_am <- lm(mpg ~ am, data=mtcars)
+
+summary(model_am)
+```
+
+However before proceeding to conclusions, it is usefull to investigate for the presence of confounding variables, since our data is rich in information:
+
+```{r}
+model_all <- lm(mpg ~ . , data=mtcars)
+
+summary(model_all)
+```
+
+Fitting a multivariable linear model tells a different story. 
+
+## Conclusions
