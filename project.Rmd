@@ -13,8 +13,6 @@ require(stats); require(graphics)
 ```{r}
 data(mtcars)
 
-pairs(mtcars[,-c(7,8)], panel=panel.smooth, main= "Car data")
-
 mtcars$am[mtcars$am =="0"] <- "automatic"
 mtcars$am[mtcars$am =="1"] <- "manual"
 
@@ -52,11 +50,31 @@ summary(model_am)
 However before proceeding to conclusions, it is usefull to investigate for the presence of confounding variables, since our data is rich in information:
 
 ```{r}
-model_all <- lm(mpg ~ . , data=mtcars)
 
-summary(model_all)
+mtcars$cyl <- as.factor(mtcars$cyl)
+mtcars$gear <- as.factor(mtcars$gear)
+mtcars$carb <- as.factor(mtcars$carb)
+mtcars$vs <- as.factor(mtcars$vs)
+
+#model_all <- lm(mpg ~ . , data=mtcars)
+```
+We attempt to fit a model with weight as confounder where there is no interaction between the weight and transmission type variables:
+```{r}
+
+m_unint <- lm(mpg ~ am + wt, data=mtcars)
+
+summary(m_unint)
+```
+Already we see that the observed effect of the type of transmission to the MPG gets dwarved by the confounding strength of the weight variable. We proceed to fit a model where there is interaction between the two predictors:
+```{r}
+m_int <- lm(mpg ~ am + wt + am*wt, data=mtcars)
+
+summary(m_int)
+anova(m_int,m_unint)
 ```
 
 Fitting a multivariable linear model tells a different story. 
 
 ## Conclusions
+
+## Apendix
