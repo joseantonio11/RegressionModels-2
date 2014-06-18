@@ -2,25 +2,18 @@
 
 ## Executive Summary
 
+In the present project, we have attempted to answer the question of whether manual or automatic transmission is a better choice for efficient fuel usage in cars. The data used for this analysis come from the 1974 Motor Trend US Magazine. We have performed hypothesis testing and fitted linear models to establish and quantify the relationship between MPG and type of transmission. It turned out that the weight of the car was a significant confounder in our analysis, and the choice of manual or automatic depends on it.
+
 ## Analysis
 
-### Loading useful packages for the analysis
-```{r}
-require(stats); require(graphics)
-
-```
-### Loading and preprocessing the data
-```{r}
+```{r,echo=FALSE}
 data(mtcars)
-
 mtcars$am[mtcars$am =="0"] <- "automatic"
 mtcars$am[mtcars$am =="1"] <- "manual"
-
-
 mtcars$am <- as.factor(mtcars$am)
-boxplot(mtcars$mpg~ mtcars$am, col=c(2,3))
-
 ```
+### Exploratory Analysis
+From the exploratory analysis (Figure 1, Appendix)  we can determine that at least in appearance the data suggests that automatic cars have lower MPG than cars with a manual transmission.
 ### Is an automatic or manual transmission better for MPG: Hypothesis Test
 
 For a basic answer to this question we perform a hypothesis test. The Null hypothesis ($H_0$) is that automatic and manual transmission does not make a difference to MPG (both means come from the same distribution)
@@ -30,9 +23,7 @@ The alternative hypothesis ($H_1$) is that manual is better for MPG than automat
 ```{r}
 ya <- mtcars$mpg[mtcars$am == "automatic"]
 ym <- mtcars$mpg[mtcars$am == "manual"]
-
 compare <- t.test(x=ym, y=ya, paired=FALSE)
-
 ```
 
 It appears that according to the results of the two sided `r compare$method`, manual is better than automatic for MPG. We report a p-value of `r compare$p.value` and confidence intervals: (`r compare$conf.int[1]`, `r compare$conf.int[2]`).
@@ -43,38 +34,53 @@ Fitting a simple linear model involving only the type of transmission as a predi
 
 ```{r}
 model_am <- lm(mpg ~ am, data=mtcars)
-
-summary(model_am)
 ```
-
-However before proceeding to conclusions, it is usefull to investigate for the presence of confounding variables, since our data is rich in information:
-
+The new coefficients from the model incorporating the weight variable as a predictor are: 
 ```{r}
-
-mtcars$cyl <- as.factor(mtcars$cyl)
-mtcars$gear <- as.factor(mtcars$gear)
-mtcars$carb <- as.factor(mtcars$carb)
-mtcars$vs <- as.factor(mtcars$vs)
-
-#model_all <- lm(mpg ~ . , data=mtcars)
+model_am$coef
 ```
-We attempt to fit a model with weight as confounder where there is no interaction between the weight and transmission type variables:
+However before proceeding to conclusions, it is usefull to investigate for the presence of confounding variables, since our data is rich in information. We first attempt to fit a model with weight as confounder, where there is no interaction between the weight and transmission type variables:
 ```{r}
-
 m_unint <- lm(mpg ~ am + wt, data=mtcars)
-
-summary(m_unint)
 ```
-Already we see that the observed effect of the type of transmission to the MPG gets dwarved by the confounding strength of the weight variable. We proceed to fit a model where there is interaction between the two predictors:
+The new coefficients from the model incorporating the weight variable as a predictor are: 
+```{r}
+m_unint$coef
+```
+Indeed, fitting a multivariable linear model tells a different story. Already we see that the observed effect of the type of transmission to the MPG gets dwarved by the confounding strength of the weight variable. We proceed to fit a model where there is interaction between the two predictors:
 ```{r}
 m_int <- lm(mpg ~ am + wt + am*wt, data=mtcars)
-
-summary(m_int)
-anova(m_int,m_unint)
 ```
+The new coefficients from the model with interaction between weight and transmission type are: 
+```{r}
+m_int$coef
+```
+We plot residuals for all models as a diagnostic tool (Figure 2, Appendix). The best fit is given by the interaction model.
 
-Fitting a multivariable linear model tells a different story. 
+At this point we verify that using the interaction model is actually beneficial, therefore perform an analysis of variance:
+```{r}
+int_vs_unint <- anova(model_am, m_unint,m_int)
+```
+This gives as a p-value of `r int_vs_unint$Pr[2]` for the model without interaction and `r  int_vs_unint$Pr[3]  ` for the model with interaction (both vs the simple model) and is therefore confirming that there is indeed an interaction between weight and transmission and we are correct to incorporate it in the model.
 
 ## Conclusions
+Our selected model suggests that whether manual or automatic transmission is better for MPG depends on the weight of the car. In more quantitative terms, given a certain weight, the expected MPG for a manual car will be `r m_int$coef[2] ` + `r m_int$coef[4] ` * (weight) times that of an automatic car. This line is plotted in Figure 3 (Appendix) and we can therefore confirm that for light cars, manual transmission is preferable whereas for heavier cars, automatic is best.
 
 ## Apendix
+
+```{r}
+boxplot(mtcars$mpg~ mtcars$am, col=c(2,3), plot=TRUE)
+```
+Figure 1: Plotting the data, Tukey style
+
+```{r}
+par(mfrow = c(3,4))
+plot(model_am)
+plot(m_unint)
+plot(m_int)
+```
+Figure 2: Residual plots for (row 1) first model with only transmission type as predictor, (row 2) second model with weight as confounder and (row 3) third model with interaction between the predictor and the confounder.
+```{r}
+plot(mtcars$wt,m_int$coef[2] + m_int$coef[4]*mtcars$wt)
+```
+Figure 3: Dependence of transmission type on the weight variable
